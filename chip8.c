@@ -4,6 +4,9 @@
 #define LITTLE_ENDIAN 0
 #define FRAME_DELAY 17
 
+#define EMU_W 64
+#define EMU_H 32
+
 #include<stdio.h>
 #include<stdlib.h> 
 #include<time.h>
@@ -15,7 +18,7 @@ typedef unsigned char byte;
 
 byte memory[0xFFF];
 byte v[0x0F]; // General-purpose registers
-int graph_matrix[32][64];
+int graph_matrix[EMU_H][EMU_W];
 
 // Special purpose registers for timer and sound
 byte delay_reg;
@@ -97,44 +100,46 @@ int main() {
         window = SDL_CreateWindow("Chip-8 Emulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WINDOW_W, WINDOW_H, SDL_WINDOW_SHOWN);
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
         // draw(80, 0, 0, window);
-     memory[512] = 0x00;
-memory[513] = 0x60;
-memory[514] = 0x00;
-memory[515] = 0x61;
-memory[516] = 0x22;
-memory[517] = 0xa2;
-memory[518] = 0x01;
-memory[519] = 0xc2;
-memory[520] = 0x01;
-memory[521] = 0x32;
-memory[522] = 0x1e;
-memory[523] = 0xa2;
-memory[524] = 0x14;
-memory[525] = 0xd0;
-memory[526] = 0x04;
-memory[527] = 0x70;
-memory[528] = 0x40;
-memory[529] = 0x30;
-memory[530] = 0x04;
-memory[531] = 0x12;
-memory[532] = 0x00;
-memory[533] = 0x60;
-memory[534] = 0x04;
-memory[535] = 0x71;
-memory[536] = 0x20;
-memory[537] = 0x31;
-memory[538] = 0x04;
-memory[539] = 0x12;
-memory[540] = 0x1c;
-memory[541] = 0x12;
-memory[542] = 0x40;
-memory[543] = 0x80;
-memory[544] = 0x10;
-memory[545] = 0x20;
-memory[546] = 0x40;
-memory[547] = 0x20;
-memory[548] = 0x10;
-memory[549] = 0x80;
+
+        // -- Hard-coded maze generator code -- //
+        memory[512] = 0x00;
+        memory[513] = 0x60;
+        memory[514] = 0x00;
+        memory[515] = 0x61;
+        memory[516] = 0x22;
+        memory[517] = 0xa2;
+        memory[518] = 0x01;
+        memory[519] = 0xc2;
+        memory[520] = 0x01;
+        memory[521] = 0x32;
+        memory[522] = 0x1e;
+        memory[523] = 0xa2;
+        memory[524] = 0x14;
+        memory[525] = 0xd0;
+        memory[526] = 0x04;
+        memory[527] = 0x70;
+        memory[528] = 0x40;
+        memory[529] = 0x30;
+        memory[530] = 0x04;
+        memory[531] = 0x12;
+        memory[532] = 0x00;
+        memory[533] = 0x60;
+        memory[534] = 0x04;
+        memory[535] = 0x71;
+        memory[536] = 0x20;
+        memory[537] = 0x31;
+        memory[538] = 0x04;
+        memory[539] = 0x12;
+        memory[540] = 0x1c;
+        memory[541] = 0x12;
+        memory[542] = 0x40;
+        memory[543] = 0x80;
+        memory[544] = 0x10;
+        memory[545] = 0x20;
+        memory[546] = 0x40;
+        memory[547] = 0x20;
+        memory[548] = 0x10;
+        memory[549] = 0x80;
 
         while(!quit) {
             byte low = memory[pc++];
@@ -142,11 +147,6 @@ memory[549] = 0x80;
             pc++;
             ir = (high << 8) + low;
             printf("IR: %x\n", ir);
-            // if(ir == 0x0000) {
-            //     quit = 1;
-            // }
-
-            // To exit the emulator
             while (SDL_PollEvent(&event)) {
                 if (event.type == SDL_QUIT) {
                     quit = 1;
@@ -288,9 +288,6 @@ memory[549] = 0x80;
                             // Draw sprite
                             // clear display
                             printf("clear and draw\n");
-                            // SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-                            // SDL_RenderFillRect(renderer, NULL);
-                            // SDL_RenderPresent(renderer); 
                             printf("%d %d\n", v[x], v[y]);
                             draw(n, v[x], v[y], renderer);
                             break;
@@ -395,37 +392,16 @@ memory[549] = 0x80;
                             }
                             break;
             }
-            SDL_Delay(100);
+            SDL_Delay(17);
         }
     }
     // for(int i = 0; i < 16; i++) {
     //     printf("%x\n", v[i]);
     // }
-    // SDL_DestroyRenderer(renderer);
-    // SDL_DestroyWindow(window);
-    // free(v);
-    // free(memory);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
     return 0;
 }
-
-// Initializes the memory and registers
-
-// int mem_init(int size) {
-//     memory = (byte*)malloc(sizeof(byte)*size);
-//     for(int i = 0; i < 0xFFF; i++) {
-//         memory[i] = 0;
-//     }
-//     memcpy(memory, fonts, sizeof(fonts));
-//     return 1;
-// }
-
-// int reg_init(int size) {
-//     v = (byte*)malloc(sizeof(byte)*size);
-//     for(int i = 0; i < size; i++) {
-//         v[i] = 0;
-//     }
-//     return 1;
-// }
 
 void cpu_init() {
     sp = -1;
@@ -433,84 +409,48 @@ void cpu_init() {
     I = 0;
 }
 
-// Returns the lower or higher order bits
-// according to the endianess
-
-// byte get_low_byte(word w) {
-//     unsigned short int n = 0x00FF;
-//     if(LITTLE_ENDIAN) 
-//         return w >> 8;
-//     else
-//         return w & n;
-// }
-
-// byte get_high_byte(word w) {
-//     unsigned short int n = 0x00FF;
-//     if(LITTLE_ENDIAN) 
-//         return w & n;
-//     else
-//         return w >> 8;
-// }
-
 void reset_graph_matrix() {
-    for(int i = 0; i < 32; i++) {
-        for(int j = 0; j < 64; j++) {
+    for(int i = 0; i < EMU_H; i++) {
+        for(int j = 0; j < EMU_W; j++) {
             graph_matrix[i][j] = 0;
         }
     }
 }
 
 void draw(int n, int x, int y, SDL_Renderer* renderer) {
-    // reset_graph_matrix();
     v[0x0F] = 0;
     for(int i = I; i < I + n; i++) {
         int mask = 0x80;
         for(int j = 0; j < 8; j++) {
             // printf("Mem - %x\n", memory[i]);
             int b = (memory[i] & mask) >> (8-j-1);
-            if(graph_matrix[i-I+x][j+y] == 1 && b == 1) {
+            if(graph_matrix[i-I+y][j+x] == 1 && b == 1) {
                 v[0x0F] = 1;
             }
-            graph_matrix[i-I+x][j+y] = b;
+            graph_matrix[i-I+y][j+x] ^= b;
             mask = mask >> 1;
         }
     }
-    // for(int i = 0; i < 32; i++) {
-    //     for(int j = 0; j < 64; j++) {
-    //         printf("%d ", graph_matrix[i][j]);
-    //     }
-    //     printf("\n");
-    // }
+    
     createGraphics(renderer, n, x, y);
 }
 
 void createGraphics(SDL_Renderer* renderer, int h, int x, int y) {
-    SDL_Event event;
-    int quit = 0;
-    // while(!quit) {
-        // while (SDL_PollEvent(&event)) {
-        //     if (event.type == SDL_QUIT) {
-        //         quit = 1;
-        //     }
-        // }
-        SDL_RenderClear(renderer);
-        for(int i = 0; i < 32; i++) {
-            for(int j = 0; j < 64; j++) {
-                // printf("%d ", g[i][j]);
-                if(graph_matrix[i][j]) {
-                    SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-                }
-                else {
-                    SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-                }
-                SDL_Rect rect = {(x + j*RECT_SIZE) % WINDOW_W, (y + i*RECT_SIZE) % WINDOW_H, RECT_SIZE, RECT_SIZE};
-                SDL_RenderFillRect(renderer, &rect);
+    for(int i = 0; i < EMU_H; i++) {
+        for(int j = 0; j < EMU_W; j++) {
+            // printf("%d ", g[i][j]);
+            if(graph_matrix[i][j]) {
+                SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+            }
+            else {
                 SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
             }
+            SDL_Rect rect = {(x + j*RECT_SIZE) % WINDOW_W, (y + i*RECT_SIZE) % WINDOW_H, RECT_SIZE, RECT_SIZE};
+            SDL_RenderFillRect(renderer, &rect);
+            SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
         }
-        SDL_RenderPresent(renderer);
-        // SDL_Delay(17);
-    // }
+    }
+    SDL_RenderPresent(renderer);
 }
 
 void probe(char a) {
@@ -526,8 +466,8 @@ void probe(char a) {
                 }
                 break;
         case 'g':
-                for(int i = 0; i < 32; i++) {
-                    for(int j = 0; j < 64; j++) {
+                for(int i = 0; i < EMU_H; i++) {
+                    for(int j = 0; j < EMU_W; j++) {
                         printf("%d ", graph_matrix[i][j]);
                     }
                     printf("\n");
