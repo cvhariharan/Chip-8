@@ -6,4 +6,4 @@ Can be compiled using gcc as follows
 gcc chip8.c -o chip8 `sdl2-config --cflags --libs`
 ```
 
-![Random maze generator](maze.png)
+![Random maze generator](maze.png?raw=true)
