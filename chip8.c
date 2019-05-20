@@ -13,8 +13,8 @@
 typedef unsigned short int word;
 typedef unsigned char byte;
 
-byte* memory;
-byte* v; // General-purpose registers
+byte memory[0xFFF];
+byte v[0x0F]; // General-purpose registers
 int graph_matrix[32][64];
 
 // Special purpose registers for timer and sound
@@ -82,8 +82,8 @@ int main() {
     word ir;
     int running = 1;
     pc = 0x200;
-    mem_init(0xFFF);
-    reg_init(0x0F);
+    // mem_init(0xFFF);
+    // reg_init(0x0F);
     cpu_init();
 
     SDL_Event event;
@@ -97,139 +97,44 @@ int main() {
         window = SDL_CreateWindow("Chip-8 Emulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WINDOW_W, WINDOW_H, SDL_WINDOW_SHOWN);
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
         // draw(80, 0, 0, window);
-       memory[512] = 0xe0;
-memory[513] = 0x00;
-memory[514] = 0x2a;
-memory[515] = 0xa2;
-memory[516] = 0x0c;
-memory[517] = 0x60;
-memory[518] = 0x08;
-memory[519] = 0x61;
-memory[520] = 0x1f;
-memory[521] = 0xd0;
-memory[522] = 0x09;
-memory[523] = 0x70;
-memory[524] = 0x39;
-memory[525] = 0xa2;
-memory[526] = 0x1f;
-memory[527] = 0xd0;
-memory[528] = 0x48;
-memory[529] = 0xa2;
-memory[530] = 0x08;
-memory[531] = 0x70;
-memory[532] = 0x1f;
-memory[533] = 0xd0;
+     memory[512] = 0x00;
+memory[513] = 0x60;
+memory[514] = 0x00;
+memory[515] = 0x61;
+memory[516] = 0x22;
+memory[517] = 0xa2;
+memory[518] = 0x01;
+memory[519] = 0xc2;
+memory[520] = 0x01;
+memory[521] = 0x32;
+memory[522] = 0x1e;
+memory[523] = 0xa2;
+memory[524] = 0x14;
+memory[525] = 0xd0;
+memory[526] = 0x04;
+memory[527] = 0x70;
+memory[528] = 0x40;
+memory[529] = 0x30;
+memory[530] = 0x04;
+memory[531] = 0x12;
+memory[532] = 0x00;
+memory[533] = 0x60;
 memory[534] = 0x04;
-memory[535] = 0x70;
-memory[536] = 0x57;
-memory[537] = 0xa2;
-memory[538] = 0x1f;
-memory[539] = 0xd0;
-memory[540] = 0x08;
-memory[541] = 0x70;
-memory[542] = 0x66;
-memory[543] = 0xa2;
-memory[544] = 0x1f;
-memory[545] = 0xd0;
-memory[546] = 0x08;
-memory[547] = 0x70;
-memory[548] = 0x75;
-memory[549] = 0xa2;
-memory[550] = 0x1f;
-memory[551] = 0xd0;
-memory[552] = 0x28;
-memory[553] = 0x12;
-memory[554] = 0x00;
-memory[555] = 0xff;
-memory[556] = 0x00;
-memory[557] = 0xff;
-memory[558] = 0x00;
-memory[559] = 0x3c;
-memory[560] = 0x00;
-memory[561] = 0x3c;
-memory[562] = 0x00;
-memory[563] = 0x3c;
-memory[564] = 0x00;
-memory[565] = 0x3c;
-memory[566] = 0x00;
-memory[567] = 0xff;
-memory[568] = 0xff;
-memory[569] = 0xff;
-memory[570] = 0xff;
-memory[571] = 0x00;
-memory[572] = 0x38;
-memory[573] = 0x00;
-memory[574] = 0x3f;
-memory[575] = 0x00;
-memory[576] = 0x3f;
-memory[577] = 0x00;
-memory[578] = 0x38;
-memory[579] = 0x00;
-memory[580] = 0xff;
-memory[581] = 0x00;
-memory[582] = 0xff;
-memory[583] = 0x00;
-memory[584] = 0x00;
-memory[585] = 0x80;
-memory[586] = 0x00;
-memory[587] = 0xe0;
-memory[588] = 0x00;
-memory[589] = 0xe0;
-memory[590] = 0x00;
-memory[591] = 0x80;
-memory[592] = 0x00;
-memory[593] = 0x80;
-memory[594] = 0x00;
-memory[595] = 0xe0;
-memory[596] = 0x00;
-memory[597] = 0xe0;
-memory[598] = 0xf8;
-memory[599] = 0x80;
-memory[600] = 0xfc;
-memory[601] = 0x00;
-memory[602] = 0x3e;
-memory[603] = 0x00;
-memory[604] = 0x3f;
-memory[605] = 0x00;
-memory[606] = 0x3b;
-memory[607] = 0x00;
-memory[608] = 0x39;
-memory[609] = 0x00;
-memory[610] = 0xf8;
-memory[611] = 0x00;
-memory[612] = 0xf8;
-memory[613] = 0x00;
-memory[614] = 0x00;
-memory[615] = 0x03;
-memory[616] = 0x00;
-memory[617] = 0x07;
-memory[618] = 0x00;
-memory[619] = 0x0f;
-memory[620] = 0x00;
-memory[621] = 0xbf;
-memory[622] = 0x00;
-memory[623] = 0xfb;
-memory[624] = 0x00;
-memory[625] = 0xf3;
-memory[626] = 0x00;
-memory[627] = 0xe3;
-memory[628] = 0xe0;
-memory[629] = 0x43;
-memory[630] = 0xe0;
-memory[631] = 0x00;
-memory[632] = 0x80;
-memory[633] = 0x00;
-memory[634] = 0x80;
-memory[635] = 0x00;
-memory[636] = 0x80;
-memory[637] = 0x00;
-memory[638] = 0x80;
-memory[639] = 0x00;
-memory[640] = 0xe0;
-memory[641] = 0x00;
-memory[642] = 0xe0;
-memory[643] = 0x00;
-
+memory[535] = 0x71;
+memory[536] = 0x20;
+memory[537] = 0x31;
+memory[538] = 0x04;
+memory[539] = 0x12;
+memory[540] = 0x1c;
+memory[541] = 0x12;
+memory[542] = 0x40;
+memory[543] = 0x80;
+memory[544] = 0x10;
+memory[545] = 0x20;
+memory[546] = 0x40;
+memory[547] = 0x20;
+memory[548] = 0x10;
+memory[549] = 0x80;
 
         while(!quit) {
             byte low = memory[pc++];
@@ -250,9 +155,11 @@ memory[643] = 0x00;
 
             word nnn = ir & 0x0FFF;
             byte n = ir & 0x000F;
-            byte x = get_high_byte(ir) & 0x0F;
-            byte y = (get_low_byte(ir) & 0xF0) >> 4;
-            byte kk = get_low_byte(ir);
+            byte x = (ir & 0x0F00) >> 8;
+            byte y = (ir & 0x00F0) >> 4;
+            byte kk = ir & 0x00FF;
+
+            printf("nnn - %x, n - %x, x - %x, y - %x, kk - %x\n", nnn, n, x, y, kk);
 
             switch(ir & 0xF000) {
                 case 0x0000:
@@ -381,9 +288,10 @@ memory[643] = 0x00;
                             // Draw sprite
                             // clear display
                             printf("clear and draw\n");
-                            SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-                            SDL_RenderFillRect(renderer, NULL);
+                            // SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
+                            // SDL_RenderFillRect(renderer, NULL);
                             // SDL_RenderPresent(renderer); 
+                            printf("%d %d\n", v[x], v[y]);
                             draw(n, v[x], v[y], renderer);
                             break;
                 case 0xE000:
@@ -425,6 +333,7 @@ memory[643] = 0x00;
                             }
                             break;
                 case 0xF000:
+                            // printf("kk - %x\n", kk);
                             if(kk == 0x07) {
                                 v[x] = delay_reg;
                             }
@@ -464,7 +373,7 @@ memory[643] = 0x00;
                                 // store bcd representation of vx in I, I+1 and I+2 memory locs
                                 printf("BCD\n");
                                 int num = v[x];
-                                for(int i = 2; i >= 0; i++) {
+                                for(int i = 2; i >= 0; i--) {
                                     int d = num % 10;
                                     num = num / 10;
                                     memory[I + i] = d; 
@@ -486,37 +395,37 @@ memory[643] = 0x00;
                             }
                             break;
             }
-            SDL_Delay(2000);
+            SDL_Delay(100);
         }
     }
     // for(int i = 0; i < 16; i++) {
     //     printf("%x\n", v[i]);
     // }
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    free(v);
-    free(memory);
+    // SDL_DestroyRenderer(renderer);
+    // SDL_DestroyWindow(window);
+    // free(v);
+    // free(memory);
     return 0;
 }
 
 // Initializes the memory and registers
 
-int mem_init(int size) {
-    memory = (byte*)malloc(sizeof(byte)*size);
-    for(int i = 0; i < 0xFFF; i++) {
-        memory[i] = 0;
-    }
-    memcpy(memory, fonts, sizeof(fonts));
-    return 1;
-}
+// int mem_init(int size) {
+//     memory = (byte*)malloc(sizeof(byte)*size);
+//     for(int i = 0; i < 0xFFF; i++) {
+//         memory[i] = 0;
+//     }
+//     memcpy(memory, fonts, sizeof(fonts));
+//     return 1;
+// }
 
-int reg_init(int size) {
-    v = (byte*)malloc(sizeof(byte)*size);
-    for(int i = 0; i < 0x0F; i++) {
-        v[i] = 0;
-    }
-    return 1;
-}
+// int reg_init(int size) {
+//     v = (byte*)malloc(sizeof(byte)*size);
+//     for(int i = 0; i < size; i++) {
+//         v[i] = 0;
+//     }
+//     return 1;
+// }
 
 void cpu_init() {
     sp = -1;
@@ -527,21 +436,21 @@ void cpu_init() {
 // Returns the lower or higher order bits
 // according to the endianess
 
-byte get_low_byte(word w) {
-    unsigned short int n = 0x00FF;
-    if(LITTLE_ENDIAN) 
-        return w >> 8;
-    else
-        return w & n;
-}
+// byte get_low_byte(word w) {
+//     unsigned short int n = 0x00FF;
+//     if(LITTLE_ENDIAN) 
+//         return w >> 8;
+//     else
+//         return w & n;
+// }
 
-byte get_high_byte(word w) {
-    unsigned short int n = 0x00FF;
-    if(LITTLE_ENDIAN) 
-        return w & n;
-    else
-        return w >> 8;
-}
+// byte get_high_byte(word w) {
+//     unsigned short int n = 0x00FF;
+//     if(LITTLE_ENDIAN) 
+//         return w & n;
+//     else
+//         return w >> 8;
+// }
 
 void reset_graph_matrix() {
     for(int i = 0; i < 32; i++) {
@@ -552,7 +461,7 @@ void reset_graph_matrix() {
 }
 
 void draw(int n, int x, int y, SDL_Renderer* renderer) {
-    reset_graph_matrix();
+    // reset_graph_matrix();
     v[0x0F] = 0;
     for(int i = I; i < I + n; i++) {
         int mask = 0x80;
