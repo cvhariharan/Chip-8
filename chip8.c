@@ -15,6 +15,7 @@ typedef unsigned char byte;
 
 byte* memory;
 byte* v; // General-purpose registers
+int graph_matrix[32][64];
 
 // Special purpose registers for timer and sound
 byte delay_reg;
@@ -29,8 +30,8 @@ SDL_Renderer* renderer;
 
 byte get_low_byte(word);
 byte get_high_byte(word);
-void createGraphics(SDL_Window*, int [][8], int, int, int);
-void draw(int, int, int, SDL_Window*);
+void createGraphics(SDL_Renderer*, int, int, int);
+void draw(int, int, int, SDL_Renderer*);
 
 int mem_init(int);
 int reg_init(int);
@@ -40,18 +41,18 @@ int keycodes[16] = {
     SDL_SCANCODE_1,
     SDL_SCANCODE_2,
     SDL_SCANCODE_3,
-    SDL_SCANCODE_4,
     SDL_SCANCODE_Q,
     SDL_SCANCODE_W,
     SDL_SCANCODE_E,
-    SDL_SCANCODE_R,
     SDL_SCANCODE_A,
     SDL_SCANCODE_S,
     SDL_SCANCODE_D,
-    SDL_SCANCODE_F,
     SDL_SCANCODE_Z,
     SDL_SCANCODE_X,
     SDL_SCANCODE_C,
+    SDL_SCANCODE_4,
+    SDL_SCANCODE_R,
+    SDL_SCANCODE_F,
     SDL_SCANCODE_V
 };
 
@@ -94,8 +95,9 @@ int main() {
     }
     else {
         window = SDL_CreateWindow("Chip-8 Emulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WINDOW_W, WINDOW_H, SDL_WINDOW_SHOWN);
+        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
         // draw(80, 0, 0, window);
-        memory[512] = 0xe0;
+       memory[512] = 0xe0;
 memory[513] = 0x00;
 memory[514] = 0x2a;
 memory[515] = 0xa2;
@@ -227,6 +229,8 @@ memory[640] = 0xe0;
 memory[641] = 0x00;
 memory[642] = 0xe0;
 memory[643] = 0x00;
+
+
         while(!quit) {
             byte low = memory[pc++];
             byte high = memory[pc];
@@ -254,123 +258,138 @@ memory[643] = 0x00;
                 case 0x0000:
                             if(ir == 0x00E0) {
                                 // clear display
-                                SDL_RenderClear(renderer);
+                                printf("Clear display\n");
+                                SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
+                                SDL_RenderFillRect(renderer, NULL);
+                                SDL_RenderPresent(renderer); 
                             }
                             else if(ir == 0x00EE) {
                                 // Return
+                                printf("Return\n");
                                 pc = stack[sp--];
                             }
                             break;
                 case 0x1000:
                             // Jump to address. Cannot return
+                            printf("Jump\n");
                             pc = nnn;
                             break;
                 case 0x2000:
                             // Call subroutine, can return
+                            printf("Call\n");
                             stack[++sp] = pc;
                             pc = nnn;
                             break;
                 case 0x3000:
                             if(v[x] == kk) {
                                 // Skip next instruction
-                                pc += 4;
+                                printf("Skip vx = kk\n");
+                                pc += 2;
                             }
                             break;
                 case 0x4000:
                             if(v[x] != kk) {
                                 // Skip next instruction
-                                pc += 4;
+                                printf("Skip vx != kk\n");
+                                pc += 2;
                             }
                             break;
                 case 0x5000:
                             if(v[x] == v[y]) {
                                 // Skip next instruction
-                                pc += 4;
+                                printf("Skip vx = vy\n");
+                                pc += 2;
                             }
                             break;
                 case 0x6000:
                             // Set vx = kk
+                            printf("set vx = kk\n");
                             v[x] = kk;
-                            pc += 2;
                             break;
                 case 0x7000:
+                            printf("Set vx += kk\n");
                             v[x] = v[x] + kk;
-                            pc += 2;
                             break;
                 case 0x8000:
                             if(n == 0x0) {
+                                printf("set vx = vy\n");
                                 v[x] = v[y];
                             }
                             else if(n == 0x1) {
+                                printf("set vx |= vy\n");
                                 v[x] = v[x] | v[y];
                             }
                             else if(n == 0x2) {
+                                printf("set vx &= vy\n");
                                 v[x] = v[x] & v[y];
                             }
                             else if(n == 0x3) {
+                                printf("set vx ^= vy\n");
                                 v[x] = v[x] ^ v[y];
                             }
                             else if(n == 0x4) {
+                                printf("set vx = vy + vx\n");
                                 word res = v[x] + v[y];
-                                v[0x0F] = res >> 8;
+                                v[0x0F] = ((res > 255) ? 1 : 0);
+                                v[x] = res;
                             }
                             else if(n == 0x5) {
-                                if(v[x] > v[y]) {
-                                    v[0x0F] = 1;
-                                }
-                                else {
-                                    v[0x0F] = 0;
-                                }
+                                printf("set vx -= vy, vx > vy\n");
+                                v[0x0F] = (v[x] > v[y]) ? 1 : 0;
                                 v[x] = v[y] - v[x];
                             }
                             else if(n == 0x6) {
                                 // Shift right and store LSB of vx
+                                printf("vx >> 1 LSB\n");
                                 v[0x0F] = v[x] & 0x01;
                                 v[x] = v[x] >> 1;
                             }
                             else if(n == 0x7) {
-                                if(v[y] > v[x]) {
-                                    v[0x0F] = 1;
-                                }
-                                else {
-                                    v[0x0F] = 0;
-                                }
+                                printf("set vx -= vy vy > vx\n");
+                                v[0x0F] = (v[y] > v[x]) ? 1 : 0;
                                 v[x] = v[y] - v[x];
                             }
                             else if(n == 0xE) {
                                 // Shift left and store MSB of vx
-                                v[0x0F] = v[x] & 0x80;
+                                printf("vx << 1 MSB\n");
+                                v[0x0F] = (v[x] >> 7) & 0x01;
                                 v[x] = v[x] << 1;
                             }
-                            pc += 2;
                             break;
                 case 0x9000:
                             if(v[x] != v[y]) {
                                 // Skip next instruction
-                                pc += 4;
+                                printf("Skip vx != vy\n");
+                                pc += 2;
                             }
                             break;
                 case 0xA000:
+                            printf("I = nnn\n");
                             I = nnn;
-                            pc += 2;
                             break;
                 case 0xB000:
+                            printf("pc = nnn + v0\n");
                             pc = nnn + v[0];
                             break;
                 case 0xC000:
+                            printf("vx = r & kk\n");
                             srand(time(0));
                             int r = rand() % 256;
                             v[x] = r & kk;
-                            pc += 2;
                             break;
                 case 0xD000:
                             // Draw sprite
-                            draw(n, v[x], v[y], window);
-                            pc += 2;
+                            // clear display
+                            printf("clear and draw\n");
+                            SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
+                            SDL_RenderFillRect(renderer, NULL);
+                            // SDL_RenderPresent(renderer); 
+                            draw(n, v[x], v[y], renderer);
                             break;
                 case 0xE000:
                             if(kk == 0x9E) {
                                 // wait for keyboard and skip if vx key is pressed
+                                printf("wait for keypress and skip\n");
                                 int q = 0;
                                 while(!q) {
                                     while(SDL_PollEvent(&event)){
@@ -378,7 +397,7 @@ memory[643] = 0x00;
                                             case SDL_KEYDOWN:
                                                             if(event.key.keysym.scancode == keycodes[v[x]]) {
                                                                 // skip next instruction
-                                                                pc += 4;
+                                                                pc += 2;
                                                             }
                                                             q = 1;
                                                             break;
@@ -388,6 +407,7 @@ memory[643] = 0x00;
                             }
                             else if(kk == 0xA1) {
                                 // Skip if vx is not pressed
+                                printf("wait for not keypress and skip\n");
                                 int q = 0;
                                 while(!q) {
                                     while(SDL_PollEvent(&event)){
@@ -395,7 +415,7 @@ memory[643] = 0x00;
                                             case SDL_KEYDOWN:
                                                             if(event.key.keysym.scancode != keycodes[v[x]]) {
                                                                 // skip next instruction
-                                                                pc += 4;
+                                                                pc += 2;
                                                             }
                                                             q = 1;
                                                             break;
@@ -410,6 +430,7 @@ memory[643] = 0x00;
                             }
                             else if(kk == 0x0A) {
                                 // Wait for key press and store in vx
+                                printf("wait for keypress and store\n");
                                 int q = 0;
                                 while(!q) {
                                     while(SDL_PollEvent(&event)){
@@ -423,20 +444,25 @@ memory[643] = 0x00;
                                 }
                             }
                             else if(kk == 0x15) {
+                                printf("delay = vx\n");
                                 delay_reg = v[x];
                             }
                             else if(kk == 0x18) {
+                                printf("sound = vx\n");
                                 sound_reg = v[x];
                             }
                             else if(kk == 0x1E) {
+                                printf("I += vx\n");
                                 I += v[x];
                             }
                             else if(kk == 0x29) {
                                 // location of sprite
+                                printf("I = vx\n");
                                 I = v[x];
                             }
                             else if(kk == 0x33) {
                                 // store bcd representation of vx in I, I+1 and I+2 memory locs
+                                printf("BCD\n");
                                 int num = v[x];
                                 for(int i = 2; i >= 0; i++) {
                                     int d = num % 10;
@@ -445,26 +471,27 @@ memory[643] = 0x00;
                                 }
                             }
                             else if(kk == 0x55) {
+                                printf("reg to mem\n");
                                 // store v0 to vx from memory I and onwards
                                 for(int i = 0; i < x; i++) {
                                     memory[I+i] = v[i];
                                 }
                             }
                             else if(kk == 0x65) {
+                                printf("mem to reg\n");
                                 // read into v0 to vx from memory I and onwards
                                 for(int i = 0; i < x; i++) {
                                     v[i] = memory[I+i];
                                 }
                             }
-                            pc += 2;
                             break;
             }
-            SDL_Delay(FRAME_DELAY);
+            SDL_Delay(2000);
         }
     }
-    for(int i = 0; i < 16; i++) {
-        printf("%x\n", v[i]);
-    }
+    // for(int i = 0; i < 16; i++) {
+    //     printf("%x\n", v[i]);
+    // }
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     free(v);
@@ -516,34 +543,52 @@ byte get_high_byte(word w) {
         return w >> 8;
 }
 
-void draw(int n, int x, int y, SDL_Window* window) {
-    int g[n][8];
+void reset_graph_matrix() {
+    for(int i = 0; i < 32; i++) {
+        for(int j = 0; j < 64; j++) {
+            graph_matrix[i][j] = 0;
+        }
+    }
+}
+
+void draw(int n, int x, int y, SDL_Renderer* renderer) {
+    reset_graph_matrix();
+    v[0x0F] = 0;
     for(int i = I; i < I + n; i++) {
         int mask = 0x80;
         for(int j = 0; j < 8; j++) {
-            printf("Mem - %x\n", memory[i]);
-            g[i-I][j] = (memory[i] & mask) >> (8-j-1);
+            // printf("Mem - %x\n", memory[i]);
+            int b = (memory[i] & mask) >> (8-j-1);
+            if(graph_matrix[i-I+x][j+y] == 1 && b == 1) {
+                v[0x0F] = 1;
+            }
+            graph_matrix[i-I+x][j+y] = b;
             mask = mask >> 1;
         }
     }
-    createGraphics(window, g, n, x, y);
+    // for(int i = 0; i < 32; i++) {
+    //     for(int j = 0; j < 64; j++) {
+    //         printf("%d ", graph_matrix[i][j]);
+    //     }
+    //     printf("\n");
+    // }
+    createGraphics(renderer, n, x, y);
 }
 
-void createGraphics(SDL_Window* window, int g[][8], int h, int x, int y) {
+void createGraphics(SDL_Renderer* renderer, int h, int x, int y) {
     SDL_Event event;
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     int quit = 0;
-    while(!quit) {
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                quit = 1;
-            }
-        }
+    // while(!quit) {
+        // while (SDL_PollEvent(&event)) {
+        //     if (event.type == SDL_QUIT) {
+        //         quit = 1;
+        //     }
+        // }
         SDL_RenderClear(renderer);
-        for(int i = 0; i < h; i++) {
-            for(int j = 0; j < 8; j++) {
+        for(int i = 0; i < 32; i++) {
+            for(int j = 0; j < 64; j++) {
                 // printf("%d ", g[i][j]);
-                if(g[i][j]) {
+                if(graph_matrix[i][j]) {
                     SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
                 }
                 else {
@@ -555,6 +600,40 @@ void createGraphics(SDL_Window* window, int g[][8], int h, int x, int y) {
             }
         }
         SDL_RenderPresent(renderer);
-        SDL_Delay(17);
+        // SDL_Delay(17);
+    // }
+}
+
+void probe(char a) {
+    switch(a) {
+        case 'm':
+                for(int i = 0; i < 0xFFF; i++) {
+                    printf("%x\n", memory[i]);
+                }
+                break;
+        case 'v':
+                for(int i = 0; i < 0xF; i++) {
+                    printf("%x\n", v[i]);
+                }
+                break;
+        case 'g':
+                for(int i = 0; i < 32; i++) {
+                    for(int j = 0; j < 64; j++) {
+                        printf("%d ", graph_matrix[i][j]);
+                    }
+                    printf("\n");
+                }
+                break;
+        case 's':
+                for(int i = 0; i < 0xF; i++) {
+                    printf("%x\n", stack[i]);
+                }
+                break;
+        case 'o':
+                printf("sp - %x\n", sp);
+                printf("I - %x\n", I);
+                printf("pc - %x\n", pc);
+                break;
+        default: printf("Next\n");
     }
 }
