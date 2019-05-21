@@ -36,9 +36,10 @@ byte get_high_byte(word);
 void createGraphics(SDL_Renderer*, int, int, int);
 void draw(int, int, int, SDL_Renderer*);
 
-int mem_init(int);
-int reg_init(int);
+int load(char* );
 void cpu_init();
+void reset_graph_matrix();
+
 
 int keycodes[16] = {
     SDL_SCANCODE_1,
@@ -80,6 +81,7 @@ byte fonts[80] =
 };
 
 int main() {
+    char romname[10];
     int quit = 0;
     // Instruction register
     word ir;
@@ -99,47 +101,10 @@ int main() {
     else {
         window = SDL_CreateWindow("Chip-8 Emulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WINDOW_W, WINDOW_H, SDL_WINDOW_SHOWN);
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-        // draw(80, 0, 0, window);
+        // scanf("%s", romname);
+        // load(romname);
+        load("test_opcode.ch8");
 
-        // -- Hard-coded maze generator code -- //
-        memory[512] = 0x00;
-        memory[513] = 0x60;
-        memory[514] = 0x00;
-        memory[515] = 0x61;
-        memory[516] = 0x22;
-        memory[517] = 0xa2;
-        memory[518] = 0x01;
-        memory[519] = 0xc2;
-        memory[520] = 0x01;
-        memory[521] = 0x32;
-        memory[522] = 0x1e;
-        memory[523] = 0xa2;
-        memory[524] = 0x14;
-        memory[525] = 0xd0;
-        memory[526] = 0x04;
-        memory[527] = 0x70;
-        memory[528] = 0x40;
-        memory[529] = 0x30;
-        memory[530] = 0x04;
-        memory[531] = 0x12;
-        memory[532] = 0x00;
-        memory[533] = 0x60;
-        memory[534] = 0x04;
-        memory[535] = 0x71;
-        memory[536] = 0x20;
-        memory[537] = 0x31;
-        memory[538] = 0x04;
-        memory[539] = 0x12;
-        memory[540] = 0x1c;
-        memory[541] = 0x12;
-        memory[542] = 0x40;
-        memory[543] = 0x80;
-        memory[544] = 0x10;
-        memory[545] = 0x20;
-        memory[546] = 0x40;
-        memory[547] = 0x20;
-        memory[548] = 0x10;
-        memory[549] = 0x80;
 
         while(!quit) {
             byte low = memory[pc++];
@@ -237,12 +202,12 @@ int main() {
                             else if(n == 0x4) {
                                 printf("set vx = vy + vx\n");
                                 word res = v[x] + v[y];
-                                v[0x0F] = ((res > 255) ? 1 : 0);
-                                v[x] = res;
+                                v[0x0F] = res > 255;
+                                v[x] = res & 0x00FF;
                             }
                             else if(n == 0x5) {
                                 printf("set vx -= vy, vx > vy\n");
-                                v[0x0F] = (v[x] > v[y]) ? 1 : 0;
+                                v[0x0F] = v[x] > v[y];
                                 v[x] = v[y] - v[x];
                             }
                             else if(n == 0x6) {
@@ -253,7 +218,7 @@ int main() {
                             }
                             else if(n == 0x7) {
                                 printf("set vx -= vy vy > vx\n");
-                                v[0x0F] = (v[y] > v[x]) ? 1 : 0;
+                                v[0x0F] = v[y] > v[x];
                                 v[x] = v[y] - v[x];
                             }
                             else if(n == 0xE) {
@@ -276,7 +241,7 @@ int main() {
                             break;
                 case 0xB000:
                             printf("pc = nnn + v0\n");
-                            pc = nnn + v[0];
+                            pc = (nnn + v[0]) & 0x0FFF;
                             break;
                 case 0xC000:
                             printf("vx = r & kk\n");
@@ -373,22 +338,18 @@ int main() {
                                 for(int i = 2; i >= 0; i--) {
                                     int d = num % 10;
                                     num = num / 10;
-                                    memory[I + i] = d; 
+                                    memory[I+i] = d; 
                                 }
                             }
                             else if(kk == 0x55) {
                                 printf("reg to mem\n");
                                 // store v0 to vx from memory I and onwards
-                                for(int i = 0; i < x; i++) {
-                                    memory[I+i] = v[i];
-                                }
+                                memcpy(memory + I, v, x);
                             }
                             else if(kk == 0x65) {
                                 printf("mem to reg\n");
                                 // read into v0 to vx from memory I and onwards
-                                for(int i = 0; i < x; i++) {
-                                    v[i] = memory[I+i];
-                                }
+                                memcpy(v, memory + I, x);
                             }
                             break;
             }
@@ -403,10 +364,44 @@ int main() {
     return 0;
 }
 
+int load(char* file_path) {
+    FILE* rom = fopen(file_path, "rb");
+    if (rom == NULL) {
+        printf("Failed to load ROM!\n");
+        return 0;
+    }
+
+    fseek(rom, 0, SEEK_END);
+    long rom_size = ftell(rom);
+    rewind(rom);
+
+    char* rom_buffer = (char*) malloc(sizeof(char) * rom_size);
+    if (rom_buffer == NULL) {
+        return 0;
+    }
+
+    size_t result = fread(rom_buffer, sizeof(char), (size_t)rom_size, rom);
+
+    if (3584 > rom_size){
+        for (int i = 0; i < rom_size-1; i += 2) {
+            memory[i + 512 + 1] = (uint8_t)rom_buffer[i];
+            memory[i + 512] = (uint8_t)rom_buffer[i + 1];
+            // printf("%x\n", memory[i + 512]);
+        }
+    }
+}
+
+
 void cpu_init() {
     sp = -1;
     pc = 0x200;
     I = 0;
+    // Copy fonts to memory
+    for(int i = 0; i < sizeof(fonts); i++) {
+        memory[i] = fonts[i];
+        // printf("%x\n", memory[i]);
+    }
+    reset_graph_matrix();
 }
 
 void reset_graph_matrix() {
@@ -419,18 +414,51 @@ void reset_graph_matrix() {
 
 void draw(int n, int x, int y, SDL_Renderer* renderer) {
     v[0x0F] = 0;
-    for(int i = I; i < I + n; i++) {
-        int mask = 0x80;
-        for(int j = 0; j < 8; j++) {
-            // printf("Mem - %x\n", memory[i]);
-            int b = (memory[i] & mask) >> (8-j-1);
-            if(graph_matrix[i-I+y][j+x] == 1 && b == 1) {
-                v[0x0F] = 1;
+    // Just a hacky way to render graphics in big endian data.
+    if(I > 0x1FF) {
+        for(int i = I+1; i < I + n; i += 2) {
+            int mask = 0x80;
+            for(int j = 0; j < 8; j++) {
+                int b = (memory[i] & mask) >> (8-j-1);
+                if(graph_matrix[i-1-I+y][j+x] == 1 && b == 1) {
+                    v[0x0F] = 1;
+                }
+                graph_matrix[i-1-I+y][j+x] ^= b;
+                mask = mask >> 1;
             }
-            graph_matrix[i-I+y][j+x] ^= b;
-            mask = mask >> 1;
+        }
+        for(int i = I; i < I + n - 1; i += 2) {
+            int mask = 0x80;
+            for(int j = 0; j < 8; j++) {
+                int b = (memory[i] & mask) >> (8-j-1);
+                if(graph_matrix[i+1-I+y][j+x] == 1 && b == 1) {
+                    v[0x0F] = 1;
+                }
+                graph_matrix[i+1-I+y][j+x] ^= b;
+                mask = mask >> 1;
+            }
         }
     }
+    else {
+        for(int i = I; i < I + n; i++) {
+            int mask = 0x80;
+            for(int j = 0; j < 8; j++) {
+                int b = (memory[i] & mask) >> (8-j-1);
+                if(graph_matrix[i-I+y][j+x] == 1 && b == 1) {
+                    v[0x0F] = 1;
+                }
+                graph_matrix[i-I+y][j+x] ^= b;
+                mask = mask >> 1;
+            }
+        }
+    }
+
+    // for(int i = 0; i < EMU_H; i++) {
+    //     for(int j = 0; j < EMU_W; j++) {
+    //         printf("%d ", graph_matrix[i][j]);
+    //     }
+    //     printf("\n");
+    // }
     
     createGraphics(renderer, n, x, y);
 }
