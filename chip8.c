@@ -101,14 +101,14 @@ int main() {
     else {
         window = SDL_CreateWindow("Chip-8 Emulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WINDOW_W, WINDOW_H, SDL_WINDOW_SHOWN);
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-        // scanf("%s", romname);
-        // load(romname);
-        load("test_opcode.ch8");
+        scanf("%s", romname);
+        load(romname);
+        // load("test_opcode.ch8");
 
 
         while(!quit) {
-            byte low = memory[pc++];
-            byte high = memory[pc];
+            byte high = memory[pc++];
+            byte low = memory[pc];
             pc++;
             ir = (high << 8) + low;
             printf("IR: %x\n", ir);
@@ -180,7 +180,7 @@ int main() {
                             break;
                 case 0x7000:
                             printf("Set vx += kk\n");
-                            v[x] = v[x] + kk;
+                            v[x] = (v[x] + kk) % 256;
                             break;
                 case 0x8000:
                             if(n == 0x0) {
@@ -208,7 +208,7 @@ int main() {
                             else if(n == 0x5) {
                                 printf("set vx -= vy, vx > vy\n");
                                 v[0x0F] = v[x] > v[y];
-                                v[x] = v[y] - v[x];
+                                v[x] = v[x] - v[y];
                             }
                             else if(n == 0x6) {
                                 // Shift right and store LSB of vx
@@ -345,11 +345,13 @@ int main() {
                                 printf("reg to mem\n");
                                 // store v0 to vx from memory I and onwards
                                 memcpy(memory + I, v, x);
+                                I = I + x + 1;
                             }
                             else if(kk == 0x65) {
                                 printf("mem to reg\n");
                                 // read into v0 to vx from memory I and onwards
                                 memcpy(v, memory + I, x);
+                                I = I + x + 1;
                             }
                             break;
             }
@@ -383,9 +385,9 @@ int load(char* file_path) {
     size_t result = fread(rom_buffer, sizeof(char), (size_t)rom_size, rom);
 
     if (3584 > rom_size){
-        for (int i = 0; i < rom_size-1; i += 2) {
-            memory[i + 512 + 1] = (uint8_t)rom_buffer[i];
-            memory[i + 512] = (uint8_t)rom_buffer[i + 1];
+        for (int i = 0; i < rom_size-1; i++) {
+            // memory[i + 512 + 1] = (uint8_t)rom_buffer[i];
+            memory[i + 512] = (uint8_t)rom_buffer[i];
             // printf("%x\n", memory[i + 512]);
         }
     }
@@ -414,51 +416,25 @@ void reset_graph_matrix() {
 
 void draw(int n, int x, int y, SDL_Renderer* renderer) {
     v[0x0F] = 0;
-    // Just a hacky way to render graphics in big endian data.
-    if(I > 0x1FF) {
-        for(int i = I+1; i < I + n; i += 2) {
-            int mask = 0x80;
-            for(int j = 0; j < 8; j++) {
-                int b = (memory[i] & mask) >> (8-j-1);
-                if(graph_matrix[i-1-I+y][j+x] == 1 && b == 1) {
-                    v[0x0F] = 1;
-                }
-                graph_matrix[i-1-I+y][j+x] ^= b;
-                mask = mask >> 1;
+
+    for(int i = I; i < I + n; i++) {
+        int mask = 0x80;
+        for(int j = 0; j < 8; j++) {
+            int b = (memory[i] & mask) >> (8-j-1);
+            if(graph_matrix[i-I+y][j+x] == 1 && b == 1) {
+                v[0x0F] = 1;
             }
-        }
-        for(int i = I; i < I + n - 1; i += 2) {
-            int mask = 0x80;
-            for(int j = 0; j < 8; j++) {
-                int b = (memory[i] & mask) >> (8-j-1);
-                if(graph_matrix[i+1-I+y][j+x] == 1 && b == 1) {
-                    v[0x0F] = 1;
-                }
-                graph_matrix[i+1-I+y][j+x] ^= b;
-                mask = mask >> 1;
-            }
-        }
-    }
-    else {
-        for(int i = I; i < I + n; i++) {
-            int mask = 0x80;
-            for(int j = 0; j < 8; j++) {
-                int b = (memory[i] & mask) >> (8-j-1);
-                if(graph_matrix[i-I+y][j+x] == 1 && b == 1) {
-                    v[0x0F] = 1;
-                }
-                graph_matrix[i-I+y][j+x] ^= b;
-                mask = mask >> 1;
-            }
+            graph_matrix[i-I+y][j+x] ^= b;
+            mask = mask >> 1;
         }
     }
 
-    // for(int i = 0; i < EMU_H; i++) {
-    //     for(int j = 0; j < EMU_W; j++) {
-    //         printf("%d ", graph_matrix[i][j]);
-    //     }
-    //     printf("\n");
-    // }
+    for(int i = 0; i < EMU_H; i++) {
+        for(int j = 0; j < EMU_W; j++) {
+            printf("%d ", graph_matrix[i][j]);
+        }
+        printf("\n");
+    }
     
     createGraphics(renderer, n, x, y);
 }
