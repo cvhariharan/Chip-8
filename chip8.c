@@ -131,9 +131,10 @@ int main() {
                             if(ir == 0x00E0) {
                                 // clear display
                                 printf("Clear display\n");
-                                SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-                                SDL_RenderFillRect(renderer, NULL);
-                                SDL_RenderPresent(renderer); 
+                                SDL_RenderClear(renderer);
+                                // SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
+                                // SDL_RenderFillRect(renderer, NULL);
+                                // SDL_RenderPresent(renderer); 
                             }
                             else if(ir == 0x00EE) {
                                 // Return
@@ -440,6 +441,9 @@ void draw(int n, int x, int y, SDL_Renderer* renderer) {
 }
 
 void createGraphics(SDL_Renderer* renderer, int h, int x, int y) {
+    SDL_RenderClear(renderer);
+    int frameDelay = 17;
+    int frameStart = SDL_GetTicks();
     for(int i = 0; i < EMU_H; i++) {
         for(int j = 0; j < EMU_W; j++) {
             // printf("%d ", g[i][j]);
@@ -449,12 +453,17 @@ void createGraphics(SDL_Renderer* renderer, int h, int x, int y) {
             else {
                 SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
             }
-            SDL_Rect rect = {(x + j*RECT_SIZE) % WINDOW_W, (y + i*RECT_SIZE) % WINDOW_H, RECT_SIZE, RECT_SIZE};
+            SDL_Rect rect = {(j*RECT_SIZE) % WINDOW_W, (i*RECT_SIZE) % WINDOW_H, RECT_SIZE, RECT_SIZE};
             SDL_RenderFillRect(renderer, &rect);
             SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
         }
     }
     SDL_RenderPresent(renderer);
+    int frameTime = SDL_GetTicks() - frameStart;
+
+    if (frameDelay > frameTime) {
+        SDL_Delay(frameDelay - frameTime);
+    }
 }
 
 void probe(char a) {
